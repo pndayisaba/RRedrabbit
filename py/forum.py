@@ -3,15 +3,15 @@ import dbconnect
 import redrabbit
 
 class Forum(redrabbit.Redrabbit):
-    requiredFields = ['email', 'description']
+    requiredFields = ['email']
     response = { }
 
     def __init__(self, strJson):
         self.data = dict(json.loads(strJson))
         
-        # Check for save type;
+        # Check for save type and set requiredFields;
         if 'save_type' not in self.data:
-            self.responese[len(self.response)] = {
+            self.response[len(self.response)] = {
                 'name':'save_type',
                 'message': 'save_type must be specified but was not provided.',
                 'success': 0
@@ -25,23 +25,25 @@ class Forum(redrabbit.Redrabbit):
             # Require [forum_id, description] when replying, editing, or deleting post
             self.requiredFields.append('forum_id')
             self.requiredFields.append('description')
+        
 
-        else:
-            # Check for required fields
-            for rf in self.requiredFields:
-                if rf not in self.data:
-                    self.response[len(self.response)] = {
-                        'name': rf,
-                        'message': 'Required',
-                        'success': 0
-                    }
-            
-            # Set default values for missing fields
-            if 'title' not in self.data:
-                self.data['title'] = None
-            if 'forum_id' not in self.data:
-                self.data['forum_id'] = None
-
+        # Set default values for missing fields
+        if 'title' not in self.data:
+            self.data['title'] = None
+        if 'forum_id' not in self.data:
+            self.data['forum_id'] = None
+        if 'description' not in self.data:
+            self.data['description'] = None
+        
+        # Check for required fields
+        for rf in self.requiredFields:
+            if rf not in self.data or self.data[rf] is None or len(str(self.data[rf])) == 0:
+                self.response[len(self.response)] = {
+                    'name': rf,
+                    'message': 'Required' if rf not in self.data else rf.capitalize() +' cannot be empty.',
+                    'success': 0
+                }
+        
         # Initialize data saving...
         self.runSave()
 
@@ -74,7 +76,7 @@ class Forum(redrabbit.Redrabbit):
                 self.data['title'], 
                 self.data['description'], 
                 self.data['email'], 
-                self.data['forum_id']
+                self.data['forum_id'] if self.data['save_type'] == 'reply' else None
             ]
             dbc = dbconnect.DatabaseConnection('forum_spi',params)
             newEntry = dbc.executeQuery()
@@ -98,7 +100,7 @@ class Forum(redrabbit.Redrabbit):
 
             dbc = dbconnect.DatabaseConnection('forum_spu', params)
             update = dbc.executeQuery()
-            if len(update) == 0 or update[0]['success'] == 0
+            if len(update) == 0 or update[0]['success'] == 0:
                 self.response[len(self.response)] = {
                     'name': 'Unknown',
                     'message': 'Could not save changes. Error unknown',
@@ -116,7 +118,7 @@ class Forum(redrabbit.Redrabbit):
             dbc = dbconnect.DatabaseConnection('forum_spd', params)
             update = dbc.executeQuery()
             
-            if len(update) == 0 or update[0]['success'] == 0
+            if len(update) == 0 or update[0]['success'] == 0:
                 self.response[len(self.response)] = {
                     'name': 'Unknown',
                     'message': 'Could not delete post. Error unknown',
@@ -130,5 +132,3 @@ class Forum(redrabbit.Redrabbit):
                 self.response[len(self.response)] = update[0]
 
         return self.response
-
-
