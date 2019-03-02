@@ -11,7 +11,7 @@ import database
 class DatabaseConnection:
     
     # Must be initialized with a query to be executed
-    def __init__(self, query, procParams = [ ],  isProcQuery=0):
+    def __init__(self, query, procParams = [ ],  isProcQuery=1):
         self.query = query 
         self.procParams = procParams
         self.isProcQuery = isProcQuery
